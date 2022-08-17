@@ -132,6 +132,11 @@ typedef NS_ENUM(NSInteger, CCILanguage) {
 @property (nonatomic, strong, readonly) NSBundle * containerBundle;
 
 /**
+ Ammount of retry attemps if an step fails. Default is 0.
+ */
+@property (nonatomic, assign) int retryAttempts;
+
+/**
  Retuans a singleton instance of Cucumberish
  
  @return singleton instance of Cucumberish
