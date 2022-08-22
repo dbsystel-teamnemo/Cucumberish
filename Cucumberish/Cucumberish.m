@@ -728,17 +728,17 @@ bool executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSS
             [[CCIStepsManager instance] executeStep:step inTestCase:testCase];
         }
         @catch (CCIExeption *exception) {
-
-            [testCase recordFailureWithDescription:exception.reason atLocation:step.location expected:YES];
-            if([parentScenario isKindOfClass:[CCIScenarioDefinition class]]){
-                CCIScenarioDefinition * scenario = (CCIScenarioDefinition *)parentScenario;
-                if(step.keyword.length > 0){
-                    NSLog(@"Step: \"%@ %@\" failed", step.keyword, step.text);
+            if (recordFailure) {
+                [testCase recordFailureWithDescription:exception.reason atLocation:step.location expected:YES];
+                if([parentScenario isKindOfClass:[CCIScenarioDefinition class]]){
+                    CCIScenarioDefinition * scenario = (CCIScenarioDefinition *)parentScenario;
+                    if(step.keyword.length > 0){
+                        NSLog(@"Step: \"%@ %@\" failed", step.keyword, step.text);
+                    }
+                    step.status = CCIStepStatusFailed;
+                    scenario.success = NO;
+                    scenario.failureReason = exception.reason;
                 }
-                if (!recordFailure) { return false; }
-                step.status = CCIStepStatusFailed;
-                scenario.success = NO;
-                scenario.failureReason = exception.reason;
             }
             return false;
         }
