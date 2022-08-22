@@ -45,7 +45,7 @@
 @implementation CCIExeption @end
 
 OBJC_EXTERN void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenario, CCIFeature * feature);
-OBJC_EXTERN void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix);
+OBJC_EXTERN bool executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix);
 OBJC_EXTERN NSString * stepDefinitionLineForStep(CCIStep * step);
 
 @interface Cucumberish()
@@ -633,6 +633,7 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
     }
 
     int retryCount = [Cucumberish instance].retryAttempts;
+    __block bool successfulStepsExecution = false;
     do {
         @try {
             if (![Cucumberish instance].dryRun) {
@@ -651,25 +652,22 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
                 if ([Cucumberish instance].dryRun) {
                     executeDryRun(self, scenario.steps);
                 } else {
-                    executeSteps(self, scenario.steps, scenario, filePathPrefix);
+                    successfulStepsExecution = executeSteps(self, scenario.steps, scenario, filePathPrefix);
                 }
             }];
             if (![Cucumberish instance].dryRun) {
                 [[Cucumberish instance] executeAfterHocksWithScenario:scenario];
             }
-            break; // break retries if execution was successful
         }
         @catch (CCIExeption *exception) {
-            // skip error handling if there are retry attempts left over
-            if (retryCount <= 0) {
-                // This catches assert failures in scenario before/around/after hooks
-                [self recordFailureWithDescription:exception.reason atLocation:scenario.location expected:YES];
-                scenario.success = NO;
-                scenario.failureReason = exception.reason;
-            }
+            // This catches assert failures in scenario before/around/after hooks
+            [self recordFailureWithDescription:exception.reason atLocation:scenario.location expected:YES];
+            scenario.success = NO;
+            scenario.failureReason = exception.reason;
+            break;
         }
         retryCount--;
-    } while (retryCount >= 0);
+    } while (!successfulStepsExecution && retryCount >= 0);
 
     [Cucumberish instance].scenariosRun++;
 
@@ -721,7 +719,7 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
 	}
 }
 
-void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix)
+bool executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix)
 {
     for (CCIStep * step in steps) {
         @try {
@@ -740,9 +738,10 @@ void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSS
                 scenario.success = NO;
                 scenario.failureReason = exception.reason;
             }
-            break;
+            return false;
         }
     }
+    return true;
 }
 
 
