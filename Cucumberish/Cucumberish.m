@@ -633,7 +633,7 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
     }
 
     int retryCount = [Cucumberish instance].retryAttempts;
-    __block BOOL successfulStepsExecution = NO;
+    __block BOOL successfulStepsExecution = YES;
     do {
         BOOL recordStepFailures = retryCount <= 0;
         @try {
