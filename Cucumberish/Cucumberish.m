@@ -45,7 +45,7 @@
 @implementation CCIExeption @end
 
 OBJC_EXTERN void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenario, CCIFeature * feature);
-OBJC_EXTERN bool executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix, bool recordFailure);
+OBJC_EXTERN BOOL executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix, BOOL recordFailure);
 OBJC_EXTERN NSString * stepDefinitionLineForStep(CCIStep * step);
 
 @interface Cucumberish()
@@ -633,9 +633,9 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
     }
 
     int retryCount = [Cucumberish instance].retryAttempts;
-    __block bool successfulStepsExecution = false;
+    __block BOOL successfulStepsExecution = NO;
     do {
-        bool recordStepFailures = retryCount <= 0;
+        BOOL recordStepFailures = retryCount <= 0;
         @try {
             if (![Cucumberish instance].dryRun) {
                 [[Cucumberish instance] executeBeforeHocksWithScenario:scenario];
@@ -720,7 +720,7 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
 	}
 }
 
-bool executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix, bool recordFailure)
+BOOL executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix, BOOL recordFailure)
 {
     for (CCIStep * step in steps) {
         @try {
