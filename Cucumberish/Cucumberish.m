@@ -45,7 +45,7 @@
 @implementation CCIExeption @end
 
 OBJC_EXTERN void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenario, CCIFeature * feature);
-OBJC_EXTERN void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix, int retryCount);
+OBJC_EXTERN void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix);
 OBJC_EXTERN NSString * stepDefinitionLineForStep(CCIStep * step);
 
 @interface Cucumberish()
@@ -632,36 +632,44 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
         return;
     }
 
-    @try {
-        if (![Cucumberish instance].dryRun) {
-            [[Cucumberish instance] executeBeforeHocksWithScenario:scenario];
-        }
-        if (feature.background != nil && scenario.steps.count > 0) {
-            if ([Cucumberish instance].dryRun) {
-                executeDryRun(self, feature.background.steps);
-            } else {
-                executeSteps(self, feature.background.steps, feature.background, filePathPrefix, 0);
+    int retryCount = [Cucumberish instance].retryAttempts;
+    do {
+        @try {
+            if (![Cucumberish instance].dryRun) {
+                [[Cucumberish instance] executeBeforeHocksWithScenario:scenario];
             }
-
-        }
-
-        [[Cucumberish instance] executeAroundHocksWithScenario:scenario executionBlock:^{
-            if ([Cucumberish instance].dryRun) {
-                executeDryRun(self, scenario.steps);
-            } else {
-                executeSteps(self, scenario.steps, scenario, filePathPrefix, 0);
+            if (feature.background != nil && scenario.steps.count > 0) {
+                if ([Cucumberish instance].dryRun) {
+                    executeDryRun(self, feature.background.steps);
+                } else {
+                    executeSteps(self, feature.background.steps, feature.background, filePathPrefix);
+                }
+                
             }
-        }];
-        if (![Cucumberish instance].dryRun) {
-            [[Cucumberish instance] executeAfterHocksWithScenario:scenario];
+            
+            [[Cucumberish instance] executeAroundHocksWithScenario:scenario executionBlock:^{
+                if ([Cucumberish instance].dryRun) {
+                    executeDryRun(self, scenario.steps);
+                } else {
+                    executeSteps(self, scenario.steps, scenario, filePathPrefix);
+                }
+            }];
+            if (![Cucumberish instance].dryRun) {
+                [[Cucumberish instance] executeAfterHocksWithScenario:scenario];
+            }
+            break; // break retries if execution was successful
         }
-    }
-    @catch (CCIExeption *exception) {
-        // This catches assert failures in scenario before/around/after hooks
-        [self recordFailureWithDescription:exception.reason atLocation:scenario.location expected:YES];
-        scenario.success = NO;
-        scenario.failureReason = exception.reason;
-    }
+        @catch (CCIExeption *exception) {
+            // skip error handling if there are retry attempts left over
+            if (retryCount <= 0) {
+                // This catches assert failures in scenario before/around/after hooks
+                [self recordFailureWithDescription:exception.reason atLocation:scenario.location expected:YES];
+                scenario.success = NO;
+                scenario.failureReason = exception.reason;
+            }
+        }
+        retryCount--;
+    } while (retryCount >= 0);
 
     [Cucumberish instance].scenariosRun++;
 
@@ -713,7 +721,7 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
 	}
 }
 
-void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix, int retryCount)
+void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSString * filePathPrefix)
 {
     for (CCIStep * step in steps) {
         @try {
@@ -721,19 +729,16 @@ void executeSteps(XCTestCase * testCase, NSArray * steps, id parentScenario, NSS
             [[CCIStepsManager instance] executeStep:step inTestCase:testCase];
         }
         @catch (CCIExeption *exception) {
-            if (retryCount >= [Cucumberish instance].retryAttempts) {
-                [testCase recordFailureWithDescription:exception.reason atLocation:step.location expected:YES];
-                if([parentScenario isKindOfClass:[CCIScenarioDefinition class]]){
-                    CCIScenarioDefinition * scenario = (CCIScenarioDefinition *)parentScenario;
-                    if(step.keyword.length > 0){
-                        NSLog(@"Step: \"%@ %@\" failed", step.keyword, step.text);
-                    }
-                    step.status = CCIStepStatusFailed;
-                    scenario.success = NO;
-                    scenario.failureReason = exception.reason;
+
+            [testCase recordFailureWithDescription:exception.reason atLocation:step.location expected:YES];
+            if([parentScenario isKindOfClass:[CCIScenarioDefinition class]]){
+                CCIScenarioDefinition * scenario = (CCIScenarioDefinition *)parentScenario;
+                if(step.keyword.length > 0){
+                    NSLog(@"Step: \"%@ %@\" failed", step.keyword, step.text);
                 }
-            } else {
-                executeSteps(testCase, steps, parentScenario, filePathPrefix, retryCount + 1);
+                step.status = CCIStepStatusFailed;
+                scenario.success = NO;
+                scenario.failureReason = exception.reason;
             }
             break;
         }
