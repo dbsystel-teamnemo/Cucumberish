@@ -86,6 +86,7 @@ OBJC_EXTERN NSString * stepDefinitionLineForStep(CCIStep * step);
     self.dryRun = NO;
     self.dryRunLanguage = CCILanguageSwift;
     self.retryAttempts = 0;
+    self.optimizedForParallelTesting = NO;
 
 #ifdef SRC_ROOT
     self.testTargetSrcRoot = SRC_ROOT;

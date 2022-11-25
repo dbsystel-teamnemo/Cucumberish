@@ -137,6 +137,11 @@ typedef NS_ENUM(NSInteger, CCILanguage) {
 @property (nonatomic, assign) int retryAttempts;
 
 /**
+ If set to true, Cucumberish will execute every Scenario in a separate TestCase to improve parallel test execution times across multiple test devices. Default is false.
+ */
+@property (nonatomic, assign) BOOL optimizedForParallelTesting;
+
+/**
  Retuans a singleton instance of Cucumberish
  
  @return singleton instance of Cucumberish
