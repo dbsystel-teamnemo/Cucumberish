@@ -91,12 +91,12 @@
             if([Cucumberish instance].optimizedForParallelTesting && feature.scenarioDefinitions.count > 1){
                 // split feature for every nested scenario
                 int scenarioCount = (int)feature.scenarioDefinitions.count;
+                NSMutableString * formatString = [NSMutableString stringWithString:@"@%@ %@ %0"];
+                [formatString appendFormat:@"%dd", (int)[NSString stringWithFormat:@"%d",scenarioCount].length];
                 for (int i = 0; i < scenarioCount; i++) {
                     CCIScenarioDefinition * scenarioDefinition = feature.scenarioDefinitions[i];
                     CCIFeature * splitFeature = [[CCIFeature alloc] initWithDictionary:featureData];
                     splitFeature.scenarioDefinitions = @[scenarioDefinition];
-                    NSMutableString * formatString = [NSMutableString stringWithString:@"@%@ %@ %0"];
-                    [formatString appendFormat:@"%dd", (int)[NSString stringWithFormat:@"%d",scenarioCount].length];
                     splitFeature.name = [NSString stringWithFormat:formatString,splitFeature.name,@"Scenario",i+1];
                     [parsedFeatures addObject:splitFeature];
                 }
