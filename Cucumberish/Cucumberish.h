@@ -137,6 +137,11 @@ typedef NS_ENUM(NSInteger, CCILanguage) {
 @property (nonatomic, assign) int retryAttempts;
 
 /**
+ Should retry attempts also be executed on failures in scenario before/around/after hooks. Default is false.
+ */
+@property (nonatomic, assign) BOOL retryAtHookFailures;
+
+/**
  If set to true, Cucumberish will execute every Scenario in a separate TestCase to improve parallel test execution times across multiple test devices. Default is false.
  */
 @property (nonatomic, assign) BOOL optimizedForParallelTesting;

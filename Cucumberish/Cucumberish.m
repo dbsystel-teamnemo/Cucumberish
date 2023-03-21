@@ -86,6 +86,7 @@ OBJC_EXTERN NSString * stepDefinitionLineForStep(CCIStep * step);
     self.dryRun = NO;
     self.dryRunLanguage = CCILanguageSwift;
     self.retryAttempts = 0;
+    self.retryAtHookFailures = NO;
     self.optimizedForParallelTesting = NO;
 
 #ifdef SRC_ROOT
@@ -664,9 +665,17 @@ void executeScenario(XCTestCase * self, SEL _cmd, CCIScenarioDefinition * scenar
         @catch (CCIExeption *exception) {
             // This catches assert failures in scenario before/around/after hooks
             [self recordFailureWithDescription:exception.reason atLocation:scenario.location expected:YES];
-            scenario.success = NO;
-            scenario.failureReason = exception.reason;
-            break;
+            successfulStepsExecution = NO;
+            
+            BOOL retryAtHookFailures = [Cucumberish instance].retryAtHookFailures;
+            if (recordStepFailures || !retryAtHookFailures) {
+                scenario.success = NO;
+                scenario.failureReason = exception.reason;
+            }
+            if (!retryAtHookFailures) {
+                // end scenario without retry
+                break;
+            }
         }
         retryCount--;
     } while (!successfulStepsExecution && retryCount >= 0);
